@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 5s # Cứ 5 giây đi hút dữ liệu 1 lần
+
+scrape_configs:
+  - job_name: 'piggy-microservices'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      # host.docker.internal là cú pháp để Docker (Prometheus) nhìn thấy localhost của máy tính (Spring Boot)
+      - targets:
+          - 'host.docker.internal:8080' # Gateway
+          - 'host.docker.internal:8081' # Identity
+          - 'host.docker.internal:8082' # Transaction
+          - 'host.docker.internal:8083' # Notification

@@ -1,0 +1,123 @@
+version: '3.8'
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # --- HẠ TẦNG ---
+  mysql:
+    image: mysql:8.0
+    container_name: piggy-mysql
+    network_mode: ${DOCKER_NETWORK_MODE}
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    command: --default-authentication-plugin=mysql_native_password
+    logging: *default-logging
+
+  consul:
+    image: hashicorp/consul:latest
+    container_name: piggy-consul
+    network_mode: ${DOCKER_NETWORK_MODE}
+    ports:
+      - "8500:8500"
+    command: "agent -dev -client 0.0.0.0"
+    logging: *default-logging
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: piggy-rabbitmq
+    network_mode: ${DOCKER_NETWORK_MODE}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    logging: *default-logging
+
+  # --- MICROSERVICES ---
+  api-gateway:
+    image: eclipse-temurin:21-jre-alpine
+    container_name: piggy-gateway
+    network_mode: ${DOCKER_NETWORK_MODE}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api-gateway-0.0.1-SNAPSHOT.jar:/app.jar
+    environment:
+      - SPRING_CLOUD_CONSUL_HOST=${CONSUL_HOST}
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - SPRING_CLOUD_GATEWAY_SERVER_WEBFLUX_GLOBALCORS_CORS_CONFIGURATIONS_ALL_ALLOWEDORIGINPATTERNS=${ALLOWED_ORIGINS}
+      - SPRING_CLOUD_GATEWAY_SERVER_WEBFLUX_GLOBALCORS_CORS_CONFIGURATIONS_ALL_ALLOWEDMETHODS=*
+      - SPRING_CLOUD_GATEWAY_SERVER_WEBFLUX_GLOBALCORS_CORS_CONFIGURATIONS_ALL_ALLOWEDHEADERS=*
+      - SPRING_CLOUD_GATEWAY_SERVER_WEBFLUX_GLOBALCORS_CORS_CONFIGURATIONS_ALL_ALLOWCREDENTIALS=true
+    command: ["sh", "-c", "java -Xms128m -Xmx256m -jar /app.jar"]
+
+  identity-service:
+    image: eclipse-temurin:21-jre-alpine
+    container_name: piggy-identity
+    network_mode: ${DOCKER_NETWORK_MODE}
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./identity-service-0.0.1-SNAPSHOT.jar:/app.jar
+    environment:
+      - SPRING_CLOUD_CONSUL_HOST=${CONSUL_HOST}
+      - SPRING_CLOUD_CONSUL_DISCOVERY_IP_ADDRESS=${CONSUL_HOST}
+      - SPRING_DATASOURCE_URL=jdbc:mysql://${DB_HOST}:3306/piggy_identity?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+    command: ["sh", "-c", "java -Xms128m -Xmx256m -jar /app.jar"]
+
+  transaction-service:
+    image: eclipse-temurin:21-jre-alpine
+    container_name: piggy-transaction
+    network_mode: ${DOCKER_NETWORK_MODE}
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./transaction-service-0.0.1-SNAPSHOT.jar:/app.jar
+    environment:
+      - SPRING_CLOUD_CONSUL_HOST=${CONSUL_HOST}
+      - SPRING_CLOUD_CONSUL_DISCOVERY_IP_ADDRESS=${CONSUL_HOST}
+      - SPRING_DATASOURCE_URL=jdbc:mysql://${DB_HOST}:3306/db_transaction?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+    command: ["sh", "-c", "java -Xms128m -Xmx256m -jar /app.jar"]
+
+  # --- FRONTEND & MONITORING ---
+  frontend:
+    image: nginx:alpine
+    container_name: piggy-frontend
+    network_mode: ${DOCKER_NETWORK_MODE}
+    ports:
+      - "80:80"
+    volumes:
+      - ./dist:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    # Ép Nginx biết GATEWAY_HOST là gì
+    extra_hosts:
+      - "gateway-service:${GATEWAY_HOST}"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: piggy-prometheus
+    network_mode: ${DOCKER_NETWORK_MODE}
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: piggy-grafana
+    network_mode: ${DOCKER_NETWORK_MODE}
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin

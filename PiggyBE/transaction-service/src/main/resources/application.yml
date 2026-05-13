@@ -1,0 +1,37 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: transaction-service
+  cloud:
+    consul:
+      host: localhost
+      port: 8500
+      discovery:
+        prefer-ip-address: true # Ưu tiên đăng ký bằng IP thay vì tên máy tính
+
+  datasource:
+    # Thêm &allowPublicKeyRetrieval=true vào cuối url
+    url: jdbc:mysql://localhost:3306/db_transaction?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: quang2712
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+# CHÚ Ý: management phải nằm sát lề trái, ngang hàng với spring và server
+management:
+  endpoints:
+    web:
+      exposure:
+        # Mở thêm cổng prometheus
+        include: health, prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      # Gắn tag tên ứng dụng để lên Grafana lọc cho dễ
+      application: ${spring.application.name}

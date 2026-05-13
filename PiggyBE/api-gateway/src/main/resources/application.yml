@@ -1,0 +1,90 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    consul:
+      host: localhost  # Nên dùng 127.0.0.1 thay vì localhost
+      port: 8500
+      discovery:
+        prefer-ip-address: true
+        enabled: true
+#  cloud:
+#    # 1. Cấu hình Consul
+#    consul:
+#      host: localhost
+#      port: 8500
+#      discovery:
+#        prefer-ip-address: true
+#        enabled: true
+
+    gateway:
+
+      server:
+        webflux:
+          globalcors:
+            corsConfigurations:
+              '[/**]':
+                allowedOriginPatterns: # Dùng Patterns thay vì Origins khi allowCredentials = true
+                  - "*"
+                allowedMethods: "*"    # Cho phép tất cả các Method
+                allowedHeaders: "*"
+                allowCredentials: true
+                maxAge: 3600
+
+      # Cấu hình định tuyến (Routes) - Nằm ngang hàng với globalcors
+      routes:
+        - id: identity-service
+          uri: lb://identity-service
+          predicates:
+            - Path=/api/auth/**, /api/users/**
+          filters:
+            - AuthenticationFilter
+            - name: CircuitBreaker
+              args:
+                name: identityCircuitBreaker
+                fallbackUri: forward:/fallback/identity
+
+        - id: transaction-service
+          uri: lb://transaction-service
+          predicates:
+            - Path=/api/transactions/**, /api/wallets/**, /api/categories/**, /api/recurring-transactions/**, /api/reports/**
+          filters:
+            - AuthenticationFilter
+            - name: CircuitBreaker
+              args:
+                name: transactionCircuitBreaker
+                fallbackUri: forward:/fallback/transaction
+
+# 3. Cấu hình Actuator (Đưa ra ngoài lề cùng)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# 4. Cấu hình Resilience4j (Cầu dao điện)
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 3s
+
+# 5. Cấu hình biến môi trường tùy chỉnh
+app:
+  jwt-secret: PiggySecretKey12345678901234567890ssssssssssssssssss

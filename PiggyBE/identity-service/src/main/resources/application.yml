@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: identity-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/piggy_identity?createDatabaseIfNotExist=true
+    username: root
+    password: quang2712
+
+  cloud:
+    consul:
+      host: localhost
+      port: 8500
+      discovery:
+        prefer-ip-address: true
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQLDialect
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+
+        include: health, prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      # Gắn tag tên ứng dụng để lên Grafana lọc cho dễ
+      application: ${spring.application.name}
+
+app:
+  jwt-secret: PiggySecretKey12345678901234567890ssssssssssssssssss
+  jwt-expiration: 86400000
+  refresh-token-expiration: 604800000

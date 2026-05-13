@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Recurring Transaction Executed</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+    <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="color: #4CAF50; text-align: center;">Transaction Executed Successfully! ✅</h2>
+        <p>Hi <b th:text="${name}">User</b>,</p>
+        <p>Your recurring transaction "<b><span th:text="${transactionName}">Transaction</span></b>" has been executed successfully.</p>
+        <p><b>Amount:</b> <span th:text="${amount}">0</span></p>
+        <p><b>Date:</b> <span th:text="${date}">Today</span></p>
+        <br>
+        <p>Keep up the good financial habits!</p>
+        <p>Best Regards,</p>
+        <p><b>The Piggy Team</b></p>
+    </div>
+</body>
+</html>

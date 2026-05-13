@@ -1,0 +1,52 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: notification-service
+
+  cloud:
+    consul:
+      host: localhost
+      port: 8500
+      discovery:
+        prefer-ip-address: true # Ưu tiên đăng ký bằng IP thay vì tên máy tính
+
+  # Cấu hình RabbitMQ
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+  # Cấu hình gửi Email
+  # Cấu hình gửi Email
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: quangcmx8@gmail.com
+    password: "eses jaxr jltt euub"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          # THÊM 2 DÒNG DƯỚI ĐÂY:
+          starttls:
+            enable: true
+            required: true
+          # Giữ nguyên dòng này để tránh xung đột SSL message
+          ssl:
+            enable: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      # Gắn tag tên ứng dụng để lên Grafana lọc cho dễ
+      application: ${spring.application.name}
