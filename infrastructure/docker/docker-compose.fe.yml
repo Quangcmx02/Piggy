@@ -1,0 +1,12 @@
+services:
+  frontend:
+    build:
+      context: ../../PiggyFE    # PiggyFE folder
+      dockerfile: Dockerfile
+    container_name: piggy-frontend
+    ports: ["80:80"]
+    volumes:
+      # Mount nginx config từ infrastructure — FE image không biết về BE
+      - ../nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [api-gateway]
+    restart: unless-stopped

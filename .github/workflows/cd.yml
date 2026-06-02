@@ -1,0 +1,79 @@
+name: CD — Build & Deploy to VPS
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/piggy
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # FE Image
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./PiggyFE
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-frontend:latest
+
+      # BE Images — build context = root
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: PiggyBE/api-gateway/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-gateway:latest
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: PiggyBE/identity-service/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-identity:latest
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: PiggyBE/transaction-service/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-transaction:latest
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: PiggyBE/notification-service/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-notification:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ~/piggy
+            git pull origin main
+            # Pull latest images và restart
+            docker-compose -f infrastructure/docker/docker-compose.yml pull
+            docker-compose -f infrastructure/docker/docker-compose.yml \
+              up -d --remove-orphans
+            # Cleanup old images
+            docker image prune -f

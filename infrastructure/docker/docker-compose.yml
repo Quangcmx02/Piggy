@@ -1,0 +1,8 @@
+# Compose v2 format — không cần 'version' field
+# Entry point — include tất cả layer
+
+include:
+  - docker-compose.infra.yml
+  - docker-compose.services.yml
+  - docker-compose.fe.yml
+  - docker-compose.monitor.yml

@@ -1,0 +1,71 @@
+# Build context = Piggy/ root (2 levels up từ infrastructure/docker/)
+x-be-common: &be-common
+  restart: unless-stopped
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+  api-gateway:
+    <<: *be-common
+    build:
+      context: ../..         # Root Piggy/
+      dockerfile: PiggyBE/api-gateway/Dockerfile
+    container_name: piggy-gateway
+    ports: ["8080:8080"]
+    environment:
+      SPRING_CLOUD_CONSUL_HOST: piggy-consul
+      SPRING_CLOUD_CONSUL_PORT: 8500
+      SPRING_CLOUD_GATEWAY_SERVER_WEBFLUX_GLOBALCORS_CORS_CONFIGURATIONS_ALL_ALLOWEDORIGINPATTERNS: ${ALLOWED_ORIGINS}
+      SPRING_CLOUD_GATEWAY_SERVER_WEBFLUX_GLOBALCORS_CORS_CONFIGURATIONS_ALL_ALLOWEDMETHODS: "*"
+      SPRING_CLOUD_GATEWAY_SERVER_WEBFLUX_GLOBALCORS_CORS_CONFIGURATIONS_ALL_ALLOWEDHEADERS: "*"
+      SPRING_CLOUD_GATEWAY_SERVER_WEBFLUX_GLOBALCORS_CORS_CONFIGURATIONS_ALL_ALLOWCREDENTIALS: "true"
+    depends_on: [consul]
+
+  identity-service:
+    <<: *be-common
+    build:
+      context: ../..
+      dockerfile: PiggyBE/identity-service/Dockerfile
+    container_name: piggy-identity
+    ports: ["8081:8081"]
+    environment:
+      SPRING_CLOUD_CONSUL_HOST: piggy-consul
+      # ⚠️ FIX C — Consul discovery IP:
+      # - Local Docker: dùng tên container "piggy-identity" (bridge network hoạt động)
+      # - VPS network_mode:host: container name KHÔNG resolve được → phải dùng 127.0.0.1
+      # → Giải pháp: đặt biến này trong .env.local / .env.vps, KHÔNG hardcode
+      SPRING_CLOUD_CONSUL_DISCOVERY_IP_ADDRESS: ${IDENTITY_DISCOVERY_IP:-piggy-identity}
+      SPRING_DATASOURCE_URL: "jdbc:mysql://piggy-mysql:3306/piggy_identity?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+    depends_on: [mysql, consul]
+
+  transaction-service:
+    <<: *be-common
+    build:
+      context: ../..
+      dockerfile: PiggyBE/transaction-service/Dockerfile
+    container_name: piggy-transaction
+    ports: ["8082:8082"]
+    environment:
+      SPRING_CLOUD_CONSUL_HOST: piggy-consul
+      # ⚠️ FIX C — Same as identity-service
+      SPRING_CLOUD_CONSUL_DISCOVERY_IP_ADDRESS: ${TRANSACTION_DISCOVERY_IP:-piggy-transaction}
+      SPRING_DATASOURCE_URL: "jdbc:mysql://piggy-mysql:3306/db_transaction?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+    depends_on: [mysql, consul]
+
+  notification-service:
+    <<: *be-common
+    build:
+      context: ../..
+      dockerfile: PiggyBE/notification-service/Dockerfile
+    container_name: piggy-notification
+    ports: ["8083:8083"]
+    environment:
+      SPRING_CLOUD_CONSUL_HOST: piggy-consul
+      SPRING_RABBITMQ_HOST: piggy-rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBIT_USER:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBIT_PASS:-guest}
+    depends_on: [rabbitmq, consul]

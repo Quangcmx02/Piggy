@@ -1,0 +1,36 @@
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: piggy-mysql
+    ports: ["3306:3306"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    logging: *logging
+    restart: unless-stopped
+
+  consul:
+    image: hashicorp/consul:latest
+    container_name: piggy-consul
+    ports: ["8500:8500"]
+    command: "agent -dev -client 0.0.0.0"
+    logging: *logging
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: piggy-rabbitmq
+    ports: ["5672:5672", "15672:15672"]
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS:-guest}
+    logging: *logging
+    restart: unless-stopped
+
+volumes:
+  mysql_data:

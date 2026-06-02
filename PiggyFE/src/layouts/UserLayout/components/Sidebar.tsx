@@ -18,7 +18,9 @@ import {
   AccountBalanceWallet as WalletIcon,
   Category as CategoryIcon,
   Update as RecurringIcon,
+  AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface SidebarProps {
   drawerWidth: number;
@@ -29,6 +31,9 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, mobileOpen, handleDrawerToggle }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const isAdmin = user?.roles?.some((r) => r === 'ADMIN' || r === 'ROLE_ADMIN');
 
   const handleMenuClick = (path: string) => {
     navigate(path);
@@ -45,6 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, mobileOpen, handleDrawer
     { text: 'Ví của tôi', path: '/wallets', icon: <WalletIcon /> },
     { text: 'Danh mục', path: '/categories', icon: <CategoryIcon /> },
     { text: 'Giao dịch định kỳ', path: '/recurring', icon: <RecurringIcon /> },
+    ...(isAdmin ? [{ text: 'Quản lý người dùng', path: '/admin/users', icon: <AdminIcon /> }] : []),
   ];
 
   const drawerContent = (

@@ -8,10 +8,14 @@ import org.piggy.identityservice.dtos.request.LoginRequest;
 import org.piggy.common.event.NotificationEvent;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.piggy.identityservice.dtos.request.RegisterRequest;
 import org.piggy.identityservice.dtos.request.TokenRefreshRequest;
+import org.piggy.identityservice.dtos.request.UpdateUserStatusRequest;
+import org.piggy.identityservice.dtos.response.AdminUserResponse;
 import org.piggy.identityservice.dtos.response.LoginResponse;
 import org.piggy.identityservice.dtos.response.TokenRefreshResponse;
 import org.piggy.identityservice.dtos.response.UserResponse;
@@ -22,6 +26,7 @@ import org.piggy.identityservice.repository.UserRepository;
 import org.piggy.identityservice.dtos.request.LogoutRequest;
 import java.time.LocalDateTime;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -106,6 +111,8 @@ public class UserServiceImpl implements IUserService {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
             );
+        } catch (DisabledException e) {
+            throw new CustomException(ExceptionErrorCode.FORBIDDEN, "Tài khoản đã bị khóa");
         } catch (Exception e) {
             throw new CustomException(ExceptionErrorCode.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu");
         }
@@ -229,5 +236,29 @@ public class UserServiceImpl implements IUserService {
         } catch (Exception ex) {
             System.err.println("Failed to send forgot password email event: " + ex.getMessage());
         }
+    }
+
+    @Override
+    public List<AdminUserResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(AdminUserResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public AdminUserResponse updateUserStatus(String userId, UpdateUserStatusRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ExceptionErrorCode.NOT_FOUND, "Không tìm thấy user"));
+
+        // Guard: admin không tự khóa chính mình
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (user.getUsername().equals(currentUsername) && !request.isActive()) {
+            throw new CustomException(ExceptionErrorCode.FORBIDDEN, "Admin không thể tự khóa tài khoản của mình");
+        }
+
+        user.setActive(request.isActive());
+        userRepository.save(user);
+        return AdminUserResponse.fromEntity(user);
     }
 }

@@ -19,6 +19,9 @@ import WalletsPage from "../pages/wallets/Wallets";
 import CategoriesPage from "../pages/categories/Categories";
 import RecurringPage from "../pages/recurring/Recurring";
 
+import AdminRoute from "../components/AdminRoute";
+import UserManagementPage from "../pages/admin/UserManagement";
+
 // PrivateRoute to protect authenticated features
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
     const { isAuthenticated, token, user } = useAuth();
@@ -55,6 +58,19 @@ export const AppRoutes = () => {
                 <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
                 <Route path="/register" element={<AuthRoute><RegisterPage /></AuthRoute>} />
                 <Route path="/forgot-password" element={<AuthRoute><ForgotPasswordPage /></AuthRoute>} />
+
+                {/* Admin Routes */}
+                <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
+                <Route
+                    path="/admin/users"
+                    element={
+                        <AdminRoute>
+                            <UserLayout />
+                        </AdminRoute>
+                    }
+                >
+                    <Route index element={<UserManagementPage />} />
+                </Route>
 
                 {/* Protected Routes nested in UserLayout */}
                 <Route

@@ -70,6 +70,10 @@ ScaffoldingReadMe.txt
 StyleCopReport.xml
 
 # Files built by Visual Studio
+.docs/
+.mvn/
+.idea/
+.agent/
 *_i.c
 *_p.c
 *_h.h
@@ -361,3 +365,32 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# ===========================
+# Piggy Monorepo — custom rules
+# ===========================
+
+# Environment files (chứa secret — KHÔNG commit)
+.env
+.env.local
+.env.vps
+
+# Java/JVM crash logs
+hs_err_pid*.log
+replay_pid*.log
+
+# Maven build output
+**/target/
+*.jar
+*.war
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Node.js
+**/dist/
+
+# Docker local volumes
+mysql_data/
+grafana_data/
