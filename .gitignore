@@ -393,3 +393,48 @@ replay_pid*.log
 # Docker local volumes
 mysql_data/
 grafana_data/
+
+# ===========================
+# Consolidated Sub-project Rules (PiggyBE & PiggyFE)
+# ===========================
+
+# Maven Wrapper
+**/.mvn/wrapper/
+
+# IDEs
+**/.idea/
+**/.kotlin
+
+# IDEs (Eclipse, NetBeans, VS Code)
+**/.apt_generated
+**/.classpath
+**/.factorypath
+**/.project
+**/.settings/
+**/.springBeans
+**/.sts4-cache/
+**/nbproject/private/
+**/nbbuild/
+**/nbdist/
+**/.nb-gradle/
+**/build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+**/.vscode/
+!**/.vscode/extensions.json
+**/*.suo
+**/*.ntvs*
+**/*.njsproj
+**/*.sln
+**/*.sw?
+
+# Node.js and Logs (PiggyFE)
+**/node_modules/
+**/dist-ssr/
+**/*.local
+**/logs/
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+**/lerna-debug.log*
